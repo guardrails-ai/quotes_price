@@ -10,7 +10,7 @@ from guardrails.validator_base import (
 )
 
 
-@register_validator(name="cartesia/quotes-price", data_type="string")
+@register_validator(name="cartesia/quotes_price", data_type="string")
 class QuotesPrice(Validator):
     """Validates that the generated text contains a price quote.
 
