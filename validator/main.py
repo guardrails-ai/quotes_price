@@ -1,8 +1,5 @@
 import re
-import string
 from typing import Any, Callable, Dict, Optional
-
-import rstr
 
 from guardrails.validator_base import (
     FailResult,
@@ -13,59 +10,92 @@ from guardrails.validator_base import (
 )
 
 
-@register_validator(name="guardrails/regex_match", data_type="string")
-class RegexMatch(Validator):
-    """Validates that a value matches a regular expression.
+@register_validator(name="cartesia/quotes-price", data_type="string")
+class QuotesPrice(Validator):
+    """Validates that the generated text contains a price quote.
 
     **Key Properties**
 
-    | Property                      | Description                       |
-    | ----------------------------- | --------------------------------- |
-    | Name for `format` attribute   | `regex_match`                     |
-    | Supported data types          | `string`                          |
-    | Programmatic fix              | Generate a string that matches the regular expression |
+    | Property                     | Description                   |
+    |------------------------------|-------------------------------|
+    | Name for `format` attribute  | `cartesia/quotes-price`       |
+    | Supported data types         | `string`                      |
+    | Programmatic fix             | N/A                           |
+    """
 
-    Args:
-        regex: Str regex pattern
-        match_type: Str in {"search", "fullmatch"} for a regex search or full-match option
-    """  # noqa
+    DEFAULT_CURRENCY = "USD"
+    SYMBOLS = {
+        "USD": "$",
+        "EUR": "€",
+        "GBP": "£",
+        "JPY": "¥",
+        "AUD": "A$",
+        "CAD": "C$",
+        "CNY": "¥",
+        "NZD": "NZ$",
+    }
 
-    def __init__(
+    def __init__(self, on_fail: Optional[Callable] = None, **kwargs):
+        super().__init__(on_fail, **kwargs)
+
+    def quotes_price(
         self,
-        regex: str,
-        match_type: Optional[str] = None,
-        on_fail: Optional[Callable] = None,
-    ):
-        # todo -> something forces this to be passed as kwargs and therefore xml-ized.
-        # match_types = ["fullmatch", "search"]
+        value: str,
+        currency: str,
+    ) -> bool:
+        """Check if the generated text contains a price quote in the given currency.
 
-        if match_type is None:
-            match_type = "fullmatch"
-        assert match_type in [
-            "fullmatch",
-            "search",
-        ], 'match_type must be in ["fullmatch", "search"]'
+        Args:
+            value (str): The generated text.
 
-        super().__init__(on_fail=on_fail, match_type=match_type, regex=regex)
-        self._regex = regex
-        self._match_type = match_type
+        Returns:
+            bool: Whether the generated text has a price quote.
+        """
+        symbol = self.SYMBOLS[currency]
+        # Create a regex pattern to match the currency symbol and a number
+        pattern = rf"{re.escape(symbol)}\s*\d+(?:\.\d+)?"
 
-    def validate(self, value: Any, metadata: Dict) -> ValidationResult:
-        p = re.compile(self._regex)
-        """Validates that value matches the provided regular expression."""
-        # Pad matching string on either side for fix
-        # example if we are performing a regex search
-        str_padding = (
-            "" if self._match_type == "fullmatch" else rstr.rstr(string.ascii_lowercase)
-        )
-        self._fix_str = str_padding + rstr.xeger(self._regex) + str_padding
+        # Check if the pattern is present in the generated text
+        return bool(re.search(pattern, value))
 
-        if not getattr(p, self._match_type)(value):
+    def _unpack_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Unpacks the metadata and returns the relevant fields."""
+        currency = metadata.get("currency", self.DEFAULT_CURRENCY)
+        assert currency in set(
+            self.SYMBOLS.keys()
+        ), f"Currency {currency} not supported."
+        return currency
+
+    def validate(self, value: str, metadata: Dict[str, Any]) -> ValidationResult:
+        """Validate that the generated text has a certain financial tone."""
+        currency = self._unpack_metadata(metadata)
+        if self.quotes_price(value, currency):
             return FailResult(
-                error_message=f"Result must match {self._regex}",
-                fix_value=self._fix_str,
+                metadata=metadata,
+                error_message="The generated text contains a price quote.",
             )
         return PassResult()
 
-    def to_prompt(self, with_keywords: bool = True) -> str:
-        return "results should match " + self._regex
+
+# Run tests via `pytest -rP ./test.py`
+class TestTest:
+    def test_success_case(self):
+        validator = QuotesPrice()
+        result = validator.validate("The price is $131.45.", {"currency": "JPY"})
+        assert isinstance(result, PassResult) is True
+        result = validator.validate("The price is not included.", {"currency": "USD"})
+        assert isinstance(result, PassResult) is True
+
+    def test_failure_case(self):
+        validator = QuotesPrice()
+        result = validator.validate("The price is $100.", {"currency": "USD"})
+        assert isinstance(result, FailResult) is True
+        result = validator.validate("The price is $131.45.", {"currency": "USD"})
+        assert isinstance(result, FailResult) is True
+
+
+if __name__ == "__main__":
+    validator = QuotesPrice()
+    print(validator.validate("The price is $100.", {"currency": "USD"}))
+    print(validator.validate("The price is $131.45.", {"currency": "USD"}))
+    print(validator.validate("The price is $131.45.", {"currency": "JPY"}))
