@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Dict, Optional
 
 from guardrails.validator_base import (
     FailResult,
@@ -18,7 +18,7 @@ class QuotesPrice(Validator):
 
     | Property                     | Description                   |
     |------------------------------|-------------------------------|
-    | Name for `format` attribute  | `cartesia/quotes-price`       |
+    | Name for `format` attribute  | `cartesia/quotes_price`       |
     | Supported data types         | `string`                      |
     | Programmatic fix             | N/A                           |
     """
@@ -58,7 +58,7 @@ class QuotesPrice(Validator):
         # Check if the pattern is present in the generated text
         return bool(re.search(pattern, value))
 
-    def _unpack_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _unpack_metadata(self, metadata: Dict[str, str]) -> str:
         """Unpacks the metadata and returns the relevant fields."""
         currency = metadata.get("currency", self.DEFAULT_CURRENCY)
         assert currency in set(
@@ -66,7 +66,7 @@ class QuotesPrice(Validator):
         ), f"Currency {currency} not supported."
         return currency
 
-    def validate(self, value: str, metadata: Dict[str, Any]) -> ValidationResult:
+    def validate(self, value: str, metadata: Dict[str, str]) -> ValidationResult:
         """Validate that the generated text has a certain financial tone."""
         currency = self._unpack_metadata(metadata)
         if self.quotes_price(value, currency):
@@ -75,27 +75,3 @@ class QuotesPrice(Validator):
                 error_message="The generated text contains a price quote.",
             )
         return PassResult()
-
-
-# Run tests via `pytest -rP ./test.py`
-class TestTest:
-    def test_success_case(self):
-        validator = QuotesPrice()
-        result = validator.validate("The price is $131.45.", {"currency": "JPY"})
-        assert isinstance(result, PassResult) is True
-        result = validator.validate("The price is not included.", {"currency": "USD"})
-        assert isinstance(result, PassResult) is True
-
-    def test_failure_case(self):
-        validator = QuotesPrice()
-        result = validator.validate("The price is $100.", {"currency": "USD"})
-        assert isinstance(result, FailResult) is True
-        result = validator.validate("The price is $131.45.", {"currency": "USD"})
-        assert isinstance(result, FailResult) is True
-
-
-if __name__ == "__main__":
-    validator = QuotesPrice()
-    print(validator.validate("The price is $100.", {"currency": "USD"}))
-    print(validator.validate("The price is $131.45.", {"currency": "USD"}))
-    print(validator.validate("The price is $131.45.", {"currency": "JPY"}))

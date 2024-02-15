@@ -1,10 +1,78 @@
-# to run these, run 
-# pytest test/test-validator.py
-
 from guardrails import Guard
+from pydantic import BaseModel, Field
 from validator import QuotesPrice
+import pytest
 
-# We use 'refrain' as the validator's fail action,
-#  so we expect failures to always result in a guarded output of None
-# Learn more about corrective actions here:
-#  https://www.guardrailsai.com/docs/concepts/output/#%EF%B8%8F-specifying-corrective-actions
+
+# Create a pydantic model with a field that uses the custom validator
+class ValidatorTestObject(BaseModel):
+    text: str = Field(validators=[QuotesPrice(on_fail="exception")])
+
+
+# Test happy path
+@pytest.mark.parametrize(
+    "value, metadata",
+    [
+        (
+            """
+            {
+                "text": "The price of a loaf of bread is not yet known."
+            }
+            """,
+            {},
+        ),
+        (
+            """
+            {
+                "text": "The price is $131.45."
+            }
+            """,
+            {
+                "currency": "JPY",
+            },
+        ),
+    ],
+)
+def test_happy_path(value, metadata):
+    """Test happy path."""
+    guard = Guard.from_pydantic(output_class=ValidatorTestObject)
+    response = guard.parse(value, metadata=metadata)
+    print("Happy path response", response)
+    assert response.validation_passed is True
+
+
+# Test fail path
+@pytest.mark.parametrize(
+    "value, metadata",
+    [
+        (
+            """
+            {
+                "text": "The price of a loaf of bread is $1.50."
+            }
+            """,
+            {
+                "currency": "USD",
+            },
+        ),
+        (
+            """
+            {
+                "text": "The Windsor castle tour costs £20.00."
+            }
+            """,
+            {
+                "currency": "GBP",
+            },
+        ),
+    ],
+)
+def test_fail_path(value, metadata):
+    """Test fail path."""
+    guard = Guard.from_pydantic(output_class=ValidatorTestObject)
+    with pytest.raises(Exception):
+        response = guard.parse(
+            value,
+            metadata=metadata,
+        )
+        print("Fail path response", response)
