@@ -4,13 +4,22 @@
 | --- | --- |
 | Date of development | Feb 15, 2024 |
 | Validator type | Format |
-| Blog |  |
+| Blog | - |
 | License | Apache 2 |
 | Input/Output | Output |
 
 ## Description
 
-This validator checks if a price quote in an unexpected currency is present in the text.
+This validator checks if a price quote in a given currency is present in the text. Supported currencies:
+- USD
+- EUR
+- GBP
+- JPY
+- AUD
+- CAD
+- CNY
+- NZD
+
 
 ## Requirements
 * Dependencies: None
@@ -18,7 +27,7 @@ This validator checks if a price quote in an unexpected currency is present in t
 ## Installation
 
 ```bash
-$ guardrails hub install hub://cartesia/quotes_price
+guardrails hub install hub://cartesia/quotes_price
 ```
 
 ## Usage Examples
@@ -28,31 +37,34 @@ $ guardrails hub install hub://cartesia/quotes_price
 In this example, we use the `quotes_price` validator on any prompt.
 
 ```python
-# Import Guard and Validator
-from guardrails.hub import QuotesPrice
 from guardrails import Guard
+from guardrails.hub import QuotesPrice
 
-# Initialize Validator
-val = QuotesPrice()
+# Setup the Guard with the validator
+guard = Guard().use(QuotesPrice, on_fail="exception")
 
-# Setup Guard
-guard = Guard.from_string(
-    validators=[val, ...],
-)
+# Test passing responses
+guard.validate(
+    "The new Airpods Max are available at a crazy discount!"
+)  # No price present
 
-# Pass LLM output through guard
-guard.parse(
-    "The price of a loaf of bread is not yet known.",
-    metadata={}
-)  # Pass
+response = guard.validate(
+    "The new Airpods Max are available at a crazy discount! It's only $9.99!",
+    metadata={"currency": "GBP"},
+)  # Price present in USD, but expected is GBP
 
-guard.parse(
-    "The Windsor castle tour costs £20.00.",
-    metadata={
-        "currency": "GBP"
-    }
-)  # Fail
-
+# Test failing response
+try:
+    response = guard.validate(
+        "The new Airpods Max are available at a crazy discount! It's only $9.99!",
+        metadata={"currency": "USD"},
+    )  # Price present in USD and expected is also USD
+except Exception as e:
+    print(e)
+```
+Output:
+```console
+Validation failed for field with errors: The generated text contains a price quote in USD.
 ```
 
 ## API Reference
@@ -70,7 +82,7 @@ Initializes a new instance of the Validator class.
 
 <br>
 
-**`__call__(self, value, metadata={}) → ValidationOutcome`**
+**`__call__(self, value, metadata={}) → ValidationResult`**
 
 <ul>
 

@@ -74,6 +74,6 @@ class QuotesPrice(Validator):
         if self.quotes_price(value, currency):
             return FailResult(
                 metadata=metadata,
-                error_message="The generated text contains a price quote in {currency}.",
+                error_message=f"The generated text contains a price quote in {currency}.",
             )
         return PassResult()
