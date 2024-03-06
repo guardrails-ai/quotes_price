@@ -1,7 +1,7 @@
+import pytest
 from guardrails import Guard
 from pydantic import BaseModel, Field
 from validator import QuotesPrice
-import pytest
 
 
 # Create a pydantic model with a field that uses the custom validator

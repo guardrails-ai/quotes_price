@@ -12,7 +12,7 @@ from guardrails.validator_base import (
 
 @register_validator(name="cartesia/quotes_price", data_type="string")
 class QuotesPrice(Validator):
-    """Validates that the generated text contains a price quote.
+    """Validates that the generated text contains a price quote in a given currency.
 
     **Key Properties**
 
@@ -61,17 +61,19 @@ class QuotesPrice(Validator):
     def _unpack_metadata(self, metadata: Dict[str, str]) -> str:
         """Unpacks the metadata and returns the relevant fields."""
         currency = metadata.get("currency", self.DEFAULT_CURRENCY)
-        assert currency in set(
-            self.SYMBOLS.keys()
-        ), f"Currency {currency} not supported."
+        assert currency in self.SYMBOLS, f"Currency {currency} not supported."
         return currency
 
     def validate(self, value: str, metadata: Dict[str, str]) -> ValidationResult:
-        """Validate that the generated text has a certain financial tone."""
+        """Validation function for the `cartesia/quotes_price` validator."""
+
+        # Get the currency from the metadata
         currency = self._unpack_metadata(metadata)
+
+        # Check if the generated text contains a price quote in the given currency
         if self.quotes_price(value, currency):
             return FailResult(
                 metadata=metadata,
-                error_message="The generated text contains a price quote.",
+                error_message="The generated text contains a price quote in {currency}.",
             )
         return PassResult()
