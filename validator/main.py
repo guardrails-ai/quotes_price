@@ -64,7 +64,7 @@ class QuotesPrice(Validator):
         assert currency in self.SYMBOLS, f"Currency {currency} not supported."
         return currency
 
-    def validate(self, value: str, metadata: Dict[str, str]) -> ValidationResult:
+    def validate(self, value: str, metadata: Dict[str, str] = {}) -> ValidationResult:
         """Validation function for the `cartesia/quotes_price` validator."""
 
         # Get the currency from the metadata
