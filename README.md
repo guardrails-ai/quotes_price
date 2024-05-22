@@ -29,7 +29,7 @@ This validator checks if a price quote in a given currency is present in the tex
 ## Installation
 
 ```bash
-guardrails hub install hub://cartesia/quotes_price
+$ guardrails hub install hub://cartesia/quotes_price
 ```
 
 ## Usage Examples
