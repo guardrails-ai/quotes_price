@@ -1,15 +1,15 @@
 ## Overview
 
 | Developed by | Cartesia AI |
-| --- | --- |
 | Date of development | Feb 15, 2024 |
 | Validator type | Format |
-| Blog | - |
+| Blog |  |
 | License | Apache 2 |
 | Input/Output | Output |
 
 ## Description
 
+### Intended Use
 This validator checks if a price quote in a given currency is present in the text. Supported currencies:
 - USD
 - EUR
@@ -21,13 +21,15 @@ This validator checks if a price quote in a given currency is present in the tex
 - NZD
 
 
-## Requirements
-* Dependencies: None
+### Requirements
+
+* Dependencies:
+    - guardrails-ai>=0.4.0
 
 ## Installation
 
 ```bash
-guardrails hub install hub://cartesia/quotes_price
+$ guardrails hub install hub://cartesia/quotes_price
 ```
 
 ## Usage Examples
@@ -67,7 +69,7 @@ Output:
 Validation failed for field with errors: The generated text contains a price quote in USD.
 ```
 
-## API Reference
+# API Reference
 
 **`__init__(self, on_fail="noop")`**
 <ul>
